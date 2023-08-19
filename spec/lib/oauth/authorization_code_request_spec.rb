@@ -4,7 +4,7 @@ require "spec_helper"
 
 RSpec.describe Doorkeeper::OAuth::AuthorizationCodeRequest do
   subject(:request) do
-    described_class.new(server, grant, client, params)
+    described_class.new(server, grant, client, credentials, params)
   end
 
   let(:server) do
@@ -15,6 +15,8 @@ RSpec.describe Doorkeeper::OAuth::AuthorizationCodeRequest do
              context.grant_type == Doorkeeper::OAuth::AUTHORIZATION_CODE ? 1234 : nil
            }
   end
+
+  let(:credentials) { Doorkeeper::OAuth::Client::Credentials.new("UID", "SECRET") }
 
   let(:resource_owner) { FactoryBot.create :resource_owner }
   let(:grant) do
@@ -54,33 +56,33 @@ RSpec.describe Doorkeeper::OAuth::AuthorizationCodeRequest do
   end
 
   it "requires the grant" do
-    request = described_class.new(server, nil, client, params)
+    request = described_class.new(server, nil, client, credentials, params)
     request.validate
     expect(request.error).to eq(:invalid_grant)
   end
 
   it "requires the client" do
-    request = described_class.new(server, grant, nil, params)
+    request = described_class.new(server, grant, nil, credentials, params)
     request.validate
     expect(request.error).to eq(:invalid_client)
   end
 
   it "requires the redirect_uri" do
-    request = described_class.new(server, grant, nil, params.except(:redirect_uri))
+    request = described_class.new(server, grant, nil, credentials, params.except(:redirect_uri))
     request.validate
     expect(request.error).to eq(:invalid_request)
     expect(request.missing_param).to eq(:redirect_uri)
   end
 
   it "matches the redirect_uri with grant's one" do
-    request = described_class.new(server, grant, client, params.merge(redirect_uri: "http://other.com"))
+    request = described_class.new(server, grant, client, credentials, params.merge(redirect_uri: "http://other.com"))
     request.validate
     expect(request.error).to eq(:invalid_grant)
   end
 
   it "matches the client with grant's one" do
     other_client = FactoryBot.create :application
-    request = described_class.new(server, grant, other_client, params)
+    request = described_class.new(server, grant, other_client, credentials, params)
     request.validate
     expect(request.error).to eq(:invalid_grant)
   end

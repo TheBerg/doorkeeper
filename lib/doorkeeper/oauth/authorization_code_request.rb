@@ -11,12 +11,13 @@ module Doorkeeper
       validate :code_verifier, error: :invalid_grant
 
       attr_reader :grant, :client, :redirect_uri, :access_token, :code_verifier,
-                  :invalid_request_reason, :missing_param
+                  :invalid_request_reason, :missing_param, :credentials
 
-      def initialize(server, grant, client, parameters = {})
+      def initialize(server, grant, client, credentials, parameters = {})
         @server = server
         @client = client
         @grant  = grant
+        @credentials = credentials
         @grant_type = Doorkeeper::OAuth::AUTHORIZATION_CODE
         @redirect_uri = parameters[:redirect_uri]
         @code_verifier = parameters[:code_verifier]
@@ -67,7 +68,12 @@ module Doorkeeper
       end
 
       def validate_client
-        client.present?
+        # client.present?
+        return client.present? if client.present? && client.is_a?(Doorkeeper::Application)
+
+        client_secret = credentials.try(:secret)
+        application = client.is_a?(Doorkeeper::Application) ? client : client.try(:application)
+        client.present? && application.present? && (code_verifier.present? || client_secret.present? || !application.confidential?)
       end
 
       def validate_grant
@@ -83,7 +89,7 @@ module Doorkeeper
         )
       end
 
-      # if either side (server or client) request PKCE, check the verifier
+      # if either side (config or client) request PKCE, check the verifier
       # against the DB - if PKCE is supported
       def validate_code_verifier
         return true unless pkce_supported?

@@ -10,6 +10,7 @@ module Doorkeeper
           Doorkeeper.config,
           grant,
           client,
+          server.credentials,
           parameters,
         )
       end

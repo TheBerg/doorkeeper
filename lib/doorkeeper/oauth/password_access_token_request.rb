@@ -9,6 +9,7 @@ module Doorkeeper
       validate :client_supports_grant_flow, error: :unauthorized_client
       validate :resource_owner, error: :invalid_grant
       validate :scopes, error: :invalid_scope
+      validate :credentials, error: :invalid_client
 
       attr_reader :client, :credentials, :resource_owner, :parameters, :access_token
 
@@ -42,6 +43,13 @@ module Doorkeeper
 
       def validate_resource_owner
         resource_owner.present?
+      end
+
+      def validate_credentials
+        return true if Doorkeeper.config.skip_client_authentication_for_password_grant
+        application = client.is_a?(Doorkeeper::Application) ? client : client.try(:application)
+        # return false if application && !application.confidential?
+        credentials && application && application.secret_matches?(credentials.secret)
       end
 
       # Section 4.3.2. Access Token Request for Resource Owner Password Credentials Grant:

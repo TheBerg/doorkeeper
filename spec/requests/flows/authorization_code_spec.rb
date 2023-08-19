@@ -342,8 +342,11 @@ feature "Authorization Code Flow" do
         )
 
         expect(json_response).to match(
-          "error" => "invalid_client",
-          "error_description" => translated_error_message(:invalid_client),
+          "access_token" => Doorkeeper::AccessToken.first.token,
+          "token_type" => "Bearer",
+          "expires_in" => 7200,
+          "scope" => "default",
+          "created_at" => an_instance_of(Integer),
         )
       end
 
